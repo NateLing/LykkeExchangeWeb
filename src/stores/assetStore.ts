@@ -89,14 +89,20 @@ export class AssetStore {
       runInAction(() => {
         this.assetsAvailableForCreditCardDeposit = fxpaygate.Assets
           .map((assetId: string) => this.getById(assetId))
-          .filter((asset: any) => asset);
+          .filter((asset: any) => asset)
+          .sort((a1: AssetModel, a2: AssetModel) =>
+            a1.name.localeCompare(a2.name)
+          );
       });
     }
     if (cryptos && cryptos.Available) {
       runInAction(() => {
         this.assetsAvailableForCryptoDeposit = cryptos.Assets
           .map((assetId: string) => this.getById(assetId))
-          .filter((asset: any) => asset);
+          .filter((asset: any) => asset)
+          .sort((a1: AssetModel, a2: AssetModel) =>
+            a1.name.localeCompare(a2.name)
+          );
       });
     }
   };

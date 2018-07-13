@@ -92,6 +92,11 @@
             position: relative;
             bottom: 2px;
           }
+
+          &.disabled {
+            cursor: not-allowed;
+            color: $gray-dark;
+          }
         }
       }
     }

@@ -5,10 +5,12 @@ import {inject, observer} from 'mobx-react';
 import React from 'react';
 import InfiniteScroll from 'react-infinite-scroller';
 import {FormattedDate, FormattedTime} from 'react-intl';
+import {Link} from 'react-router-dom';
 import {RootStoreProps} from '../../App';
 import {ColoredAmount} from '../../components/ColoredAmount';
 import {NumberFormat} from '../../components/NumberFormat';
 import Spinner from '../../components/Spinner';
+import {ROUTE_WALLETS_TRADING} from '../../constants/routes';
 import {STORE_ROOT} from '../../constants/stores';
 import {
   TransactionModel,
@@ -31,6 +33,7 @@ interface TransactionsTableProps extends RootStoreProps {
     count: number,
     transactionTypes?: TransactionType[]
   ) => void;
+  stickyTitle?: React.ReactChild;
 }
 
 export class TransactionsTable extends React.Component<TransactionsTableProps> {
@@ -38,11 +41,14 @@ export class TransactionsTable extends React.Component<TransactionsTableProps> {
   @observable private transactionsFilterValue: TransactionType[] = [];
   @observable private areTransactionsLoading = false;
   @observable private hasMoreTransactions = true;
+  @observable private showStickyHeader = false;
+
+  private filtersRowElement: HTMLDivElement;
 
   @computed
   get showEmptyState() {
     return (
-      this.props.transactions.length === 0 &&
+      !this.props.transactions.length &&
       !this.areTransactionsLoading &&
       !this.hasMoreTransactions
     );
@@ -80,6 +86,11 @@ export class TransactionsTable extends React.Component<TransactionsTableProps> {
     this.loadTransactions();
 
     window.scrollTo(0, 0);
+    window.addEventListener('scroll', this.handleScroll);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this.handleScroll);
   }
 
   render() {
@@ -104,25 +115,83 @@ export class TransactionsTable extends React.Component<TransactionsTableProps> {
 
     return (
       <div className="transactions">
-        <div className="filters-row">
+        <div
+          className={classnames('sticky-row', {
+            'sticky-row_active': this.showStickyHeader
+          })}
+        >
+          <div className="filters-row">
+            <div className="container">
+              <Link to={ROUTE_WALLETS_TRADING} className="arrow-back">
+                <img
+                  src={`${process.env.PUBLIC_URL}/images/back-icn.svg`}
+                  alt="Back"
+                />
+              </Link>
+              <div className="transaction-filters">
+                <div
+                  className="transaction-filters__title"
+                  onClick={this.handleStickyTitleClick}
+                >
+                  {this.props.stickyTitle}
+                </div>
+                {transactionFilters.map(filter => (
+                  <div
+                    className={classnames('transaction-filters__item', {
+                      'transaction-filters__item_active': arraysEqual(
+                        this.transactionsFilterValue,
+                        filter.value
+                      )
+                    })}
+                    key={filter.label}
+                    // tslint:disable-next-line:jsx-no-lambda
+                    onClick={() =>
+                      this.handleTransactionsFilterChange(filter.value, true)}
+                  >
+                    {filter.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="container">
+            <div className="transactions-table">
+              <Table responsive>
+                <thead>
+                  <tr>
+                    <th className="transactions-table__asset-col">Asset</th>
+                    <th className="transactions-table__date-col">Date</th>
+                    <th className="transactions-table__operation-col">
+                      Operation
+                    </th>
+                    <th className="transactions-table__amount-col">Amount</th>
+                  </tr>
+                </thead>
+              </Table>
+            </div>
+          </div>
+        </div>
+
+        <div className="filters-row" ref={this.setFiltersRowElement}>
           <div className="container">
             <div className="transaction-filters">
               <div className="transaction-filters__title">
-                Latest Transactions
+                Latest transactions
               </div>
-              {transactionFilters.map(tf => (
+              {transactionFilters.map(filter => (
                 <div
                   className={classnames('transaction-filters__item', {
                     'transaction-filters__item_active': arraysEqual(
                       this.transactionsFilterValue,
-                      tf.value
+                      filter.value
                     )
                   })}
-                  key={tf.label}
+                  key={filter.label}
                   // tslint:disable-next-line:jsx-no-lambda
-                  onClick={() => this.handleTransactionsFilterChange(tf.value)}
+                  onClick={() =>
+                    this.handleTransactionsFilterChange(filter.value)}
                 >
-                  {tf.label}
+                  {filter.label}
                 </div>
               ))}
             </div>
@@ -136,36 +205,39 @@ export class TransactionsTable extends React.Component<TransactionsTableProps> {
                 You don't have any transactions yet
               </div>
             )}
-            <InfiniteScroll
-              loadMore={this.handleLoadMoreTransactions}
-              hasMore={this.hasMoreTransactions}
-            >
-              {this.showTransactionsTable && (
+            <div className={classnames({hidden: !this.showTransactionsTable})}>
+              <InfiniteScroll
+                loadMore={this.handleLoadMoreTransactions}
+                hasMore={this.hasMoreTransactions}
+              >
                 <Table responsive>
                   <thead>
                     <tr>
-                      <th>Asset</th>
-                      <th>Date</th>
-                      <th>Operation</th>
-                      <th>Amount</th>
+                      <th className="transactions-table__asset-col">Asset</th>
+                      <th className="transactions-table__date-col">Date</th>
+                      <th className="transactions-table__operation-col">
+                        Operation
+                      </th>
+                      <th className="transactions-table__amount-col">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {this.props.transactions.map(
-                      t =>
-                        t.asset && (
-                          <tr key={t.id}>
+                      transaction =>
+                        transaction.asset && (
+                          <tr key={transaction.id}>
                             <td>
                               <div className="asset-col">
                                 <img
                                   width="48"
                                   src={
-                                    t.asset.iconUrl || ASSET_DEFAULT_ICON_URL
+                                    transaction.asset.iconUrl ||
+                                    ASSET_DEFAULT_ICON_URL
                                   }
                                 />
                                 <div>
                                   <div className="asset-col__asset_name">
-                                    {t.asset.name}
+                                    {transaction.asset.name}
                                   </div>
                                   <div className="asset-col__wallet_name">
                                     Trading Wallet
@@ -178,28 +250,30 @@ export class TransactionsTable extends React.Component<TransactionsTableProps> {
                                 day="2-digit"
                                 month="2-digit"
                                 year="2-digit"
-                                value={t.dateTime}
-                              />, <FormattedTime value={t.dateTime} />
+                                value={transaction.dateTime}
+                              />, <FormattedTime value={transaction.dateTime} />
                             </td>
                             <td>
-                              {TransactionTypeLabel[t.type]}{' '}
-                              {TransactionStatusLabel[t.state]}
+                              {TransactionTypeLabel[transaction.type]}{' '}
+                              {TransactionStatusLabel[transaction.state]}
                             </td>
                             <td>
-                              {t.type === TransactionType.LimitOrderEvent &&
-                              t.state === TransactionStatus.Canceled ? (
+                              {transaction.type ===
+                                TransactionType.LimitOrderEvent &&
+                              transaction.state ===
+                                TransactionStatus.Canceled ? (
                                 <div className="amount-col">
                                   <NumberFormat
-                                    value={Math.abs(t.amount)}
-                                    accuracy={t.asset.accuracy}
+                                    value={Math.abs(transaction.amount)}
+                                    accuracy={transaction.asset.accuracy}
                                   />{' '}
-                                  {t.asset.name}
+                                  {transaction.asset.name}
                                 </div>
                               ) : (
                                 <ColoredAmount
-                                  value={t.amount}
-                                  accuracy={t.asset.accuracy}
-                                  assetName={t.asset.name}
+                                  value={transaction.amount}
+                                  accuracy={transaction.asset.accuracy}
+                                  assetName={transaction.asset.name}
                                 />
                               )}
                             </td>
@@ -208,8 +282,8 @@ export class TransactionsTable extends React.Component<TransactionsTableProps> {
                     )}
                   </tbody>
                 </Table>
-              )}
-            </InfiniteScroll>
+              </InfiniteScroll>
+            </div>
             {this.areTransactionsLoading && <Spinner />}
             {this.showLoadMoreButton && (
               <div
@@ -235,16 +309,44 @@ export class TransactionsTable extends React.Component<TransactionsTableProps> {
   };
 
   private handleTransactionsFilterChange = async (
-    transactionType: TransactionType[]
+    transactionType: TransactionType[],
+    shouldScroll?: boolean
   ) => {
+    if (shouldScroll) {
+      window.scrollTo(0, 0);
+    }
+
     this.transactionsFilterValue = transactionType;
     this.pageNumber = 1;
     this.loadTransactions();
   };
 
   private handleLoadMoreTransactions = async () => {
+    if (this.areTransactionsLoading) {
+      return;
+    }
+
     this.pageNumber++;
     this.loadTransactions();
+  };
+
+  private handleScroll = () => {
+    if (this.filtersRowElement) {
+      const stickyHeaderBreakpointPosition =
+        this.filtersRowElement.offsetTop - 30;
+
+      this.showStickyHeader =
+        window.pageYOffset >= stickyHeaderBreakpointPosition &&
+        this.props.transactions.length > 0;
+    }
+  };
+
+  private handleStickyTitleClick = () => {
+    window.scrollTo(0, 0);
+  };
+
+  private setFiltersRowElement = (element: HTMLDivElement) => {
+    this.filtersRowElement = element;
   };
 }
 

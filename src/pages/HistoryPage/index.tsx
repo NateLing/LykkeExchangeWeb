@@ -14,10 +14,6 @@ export class HistoryPage extends React.Component<RootStoreProps> {
   private readonly transactionStore = this.props.rootStore!.transactionStore;
   private readonly walletStore = this.props.rootStore!.walletStore;
 
-  constructor(props: any) {
-    super(props);
-  }
-
   componentDidMount() {
     window.scrollTo(0, 0);
   }
@@ -42,6 +38,11 @@ export class HistoryPage extends React.Component<RootStoreProps> {
         <TransactionsTable
           transactions={this.transactionStore.walletTransactions}
           loadTransactions={this.loadTransactions}
+          stickyTitle={
+            <div className="sticky-title">
+              <span className="sticky-title__wallet-name">Trading Wallet</span>
+            </div>
+          }
         />
       </div>
     );

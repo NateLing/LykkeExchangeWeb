@@ -136,16 +136,26 @@ export class AssetPage extends React.Component<AssetPageProps> {
                           Credit card
                         </a>
                       ))}
-                    {this.isAvailableForCryptoDeposit && (
-                      <Link to={ROUTE_DEPOSIT_CRYPTO_TO(asset.id)}>
-                        <img
-                          className="icon"
-                          src={`${process.env
-                            .PUBLIC_URL}/images/paymentMethods/deposit-bl-transfer-icn.svg`}
-                        />
-                        Blockchain Transfer
-                      </Link>
-                    )}
+                    {this.isAvailableForCryptoDeposit &&
+                      (this.profileStore.isKycPassed ? (
+                        <Link to={ROUTE_DEPOSIT_CRYPTO_TO(asset.id)}>
+                          <img
+                            className="icon"
+                            src={`${process.env
+                              .PUBLIC_URL}/images/paymentMethods/deposit-bl-transfer-icn.svg`}
+                          />
+                          Blockchain Transfer
+                        </Link>
+                      ) : (
+                        <a className="disabled">
+                          <img
+                            className="icon"
+                            src={`${process.env
+                              .PUBLIC_URL}/images/paymentMethods/deposit-bl-transfer-icn.svg`}
+                          />
+                          Blockchain Transfer
+                        </a>
+                      ))}
                   </li>
                 </ul>
               )}
